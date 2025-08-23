@@ -6,6 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import QueryEditor from "./pages/QueryEditor";
 import Bounties from "./pages/Bounties";
+import DashboardBuilder from "./pages/DashboardBuilder";
+import DataVisualization from "./pages/DataVisualization";
+import Wallet from "./pages/Wallet";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +24,10 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/query" element={<QueryEditor />} />
           <Route path="/bounties" element={<Bounties />} />
+          <Route path="/builder" element={<DashboardBuilder />} />
+          <Route path="/charts" element={<DataVisualization />} />
+          <Route path="/wallet" element={<Wallet />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
