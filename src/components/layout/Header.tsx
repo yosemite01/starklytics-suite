@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { 
   Bell, 
@@ -43,6 +44,12 @@ export function Header({ title, subtitle }: HeaderProps) {
 
         <div className="flex items-center space-x-4">
           {/* Network Status */}
+          {/* Docs Link */}
+          <Link to="/docs">
+            <Button variant="outline" size="sm" className="ml-2">
+              Docs
+            </Button>
+          </Link>
           <div className="flex items-center space-x-2">
             <div className="flex items-center space-x-1">
               <Activity className="w-4 h-4 text-chart-success animate-pulse" />
