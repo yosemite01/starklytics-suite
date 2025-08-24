@@ -1,48 +1,140 @@
-import { Sidebar } from "@/components/layout/Sidebar";
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthenticatedSidebar } from "@/components/layout/AuthenticatedSidebar";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Clock, DollarSign, Users } from "lucide-react";
+import { Trophy, Clock, DollarSign, Users, Plus } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
 
-const bounties = [
-  {
-    id: 1,
-    title: "Starknet DeFi TVL Analysis Dashboard",
-    description: "Create a comprehensive dashboard showing Total Value Locked across all DeFi protocols on Starknet",
-    reward: "500 STRK",
-    deadline: "2024-02-15",
-    status: "Active",
-    participants: 12,
-    difficulty: "Medium"
-  },
-  {
-    id: 2,
-    title: "NFT Market Trends Visualization",
-    description: "Build interactive charts showing NFT trading volume, floor prices, and collection performance",
-    reward: "750 STRK",
-    deadline: "2024-02-20",
-    status: "Active",
-    participants: 8,
-    difficulty: "Hard"
-  },
-  {
-    id: 3,
-    title: "Gas Usage Optimization Report",
-    description: "Analyze gas consumption patterns and identify optimization opportunities",
-    reward: "300 STRK",
-    deadline: "2024-02-10",
-    status: "Completed",
-    participants: 15,
-    difficulty: "Easy"
-  }
-];
+interface Bounty {
+  id: string;
+  title: string;
+  description: string;
+  reward_amount: number;
+  reward_token: string;
+  deadline: string | null;
+  status: string;
+  current_participants: number;
+  max_participants: number | null;
+  difficulty: string;
+  creator_id: string;
+}
+
+interface Stats {
+  activeBounties: number;
+  totalRewards: number;
+  activeParticipants: number;
+  completedThisMonth: number;
+}
 
 const Bounties = () => {
+  const { user, profile } = useAuth();
+  const [bounties, setBounties] = useState<Bounty[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    activeBounties: 0,
+    totalRewards: 0,
+    activeParticipants: 0,
+    completedThisMonth: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchBounties();
+    fetchStats();
+  }, []);
+
+  const fetchBounties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bounties')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBounties(data || []);
+    } catch (error) {
+      console.error('Error fetching bounties:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      // Get active bounties count
+      const { count: activeBountiesCount } = await supabase
+        .from('bounties')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      // Get total rewards
+      const { data: rewardsData } = await supabase
+        .from('bounties')
+        .select('reward_amount')
+        .eq('status', 'active');
+
+      const totalRewards = rewardsData?.reduce((sum, bounty) => sum + bounty.reward_amount, 0) || 0;
+
+      // Get active participants count
+      const { count: participantsCount } = await supabase
+        .from('bounty_participants')
+        .select('*', { count: 'exact', head: true });
+
+      // Get completed this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { count: completedThisMonthCount } = await supabase
+        .from('bounties')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'completed')
+        .gte('updated_at', startOfMonth.toISOString());
+
+      setStats({
+        activeBounties: activeBountiesCount || 0,
+        totalRewards: totalRewards,
+        activeParticipants: participantsCount || 0,
+        completedThisMonth: completedThisMonthCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const handleJoinBounty = async (bountyId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('bounty_participants')
+        .insert([{
+          bounty_id: bountyId,
+          participant_id: user.id
+        }]);
+
+      if (error) throw error;
+
+      // Refresh bounties to update participant count
+      fetchBounties();
+    } catch (error: any) {
+      console.error('Error joining bounty:', error);
+    }
+  };
+
+  const formatDeadline = (deadline: string | null) => {
+    if (!deadline) return 'No deadline';
+    return new Date(deadline).toLocaleDateString();
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="flex">
-        <Sidebar />
+        <AuthenticatedSidebar />
         <div className="flex-1">
           <Header 
             title="Analytics Bounties" 
@@ -57,7 +149,7 @@ const Bounties = () => {
                   <div className="flex items-center space-x-2">
                     <Trophy className="w-8 h-8 text-chart-warning" />
                     <div>
-                      <p className="text-2xl font-bold">24</p>
+                      <p className="text-2xl font-bold">{stats.activeBounties}</p>
                       <p className="text-xs text-muted-foreground">Active Bounties</p>
                     </div>
                   </div>
@@ -68,7 +160,7 @@ const Bounties = () => {
                   <div className="flex items-center space-x-2">
                     <DollarSign className="w-8 h-8 text-chart-success" />
                     <div>
-                      <p className="text-2xl font-bold">12.5K</p>
+                      <p className="text-2xl font-bold">{stats.totalRewards.toLocaleString()}</p>
                       <p className="text-xs text-muted-foreground">Total Rewards (STRK)</p>
                     </div>
                   </div>
@@ -79,7 +171,7 @@ const Bounties = () => {
                   <div className="flex items-center space-x-2">
                     <Users className="w-8 h-8 text-chart-primary" />
                     <div>
-                      <p className="text-2xl font-bold">156</p>
+                      <p className="text-2xl font-bold">{stats.activeParticipants}</p>
                       <p className="text-xs text-muted-foreground">Active Participants</p>
                     </div>
                   </div>
@@ -90,7 +182,7 @@ const Bounties = () => {
                   <div className="flex items-center space-x-2">
                     <Clock className="w-8 h-8 text-chart-secondary" />
                     <div>
-                      <p className="text-2xl font-bold">48</p>
+                      <p className="text-2xl font-bold">{stats.completedThisMonth}</p>
                       <p className="text-xs text-muted-foreground">Completed This Month</p>
                     </div>
                   </div>
@@ -98,68 +190,101 @@ const Bounties = () => {
               </Card>
             </div>
 
-            {/* Bounties List */}
-            <div className="space-y-4">
-              {bounties.map((bounty) => (
-                <Card key={bounty.id} className="glass hover:shadow-elevated transition-all">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
-                        <CardTitle className="text-xl">{bounty.title}</CardTitle>
-                        <p className="text-muted-foreground">{bounty.description}</p>
-                      </div>
-                      <Badge 
-                        variant={bounty.status === "Active" ? "default" : "secondary"}
-                        className={bounty.status === "Active" ? "glow-primary" : ""}
-                      >
-                        {bounty.status}
-                      </Badge>
+            {/* Create Bounty CTA */}
+            {profile?.role === 'bounty_creator' || profile?.role === 'admin' ? (
+              <Card className="glass border-primary/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-1">Ready to post a new challenge?</h3>
+                      <p className="text-muted-foreground">
+                        Create a bounty and let the community solve your analytics needs.
+                      </p>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-6">
-                        <div className="flex items-center space-x-2">
-                          <DollarSign className="w-4 h-4 text-chart-success" />
-                          <span className="font-semibold text-chart-success">{bounty.reward}</span>
+                    <Button asChild className="glow-primary">
+                      <Link to="/create-bounty">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Bounty
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {/* Bounties List */}
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : bounties.length === 0 ? (
+              <Card className="glass">
+                <CardContent className="p-12 text-center">
+                  <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No active bounties yet</h3>
+                  <p className="text-muted-foreground">
+                    Be the first to create a bounty and start the analytics revolution!
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {bounties.map((bounty) => (
+                  <Card key={bounty.id} className="glass hover:shadow-elevated transition-all">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-2">
+                          <CardTitle className="text-xl">{bounty.title}</CardTitle>
+                          <p className="text-muted-foreground">{bounty.description}</p>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Due {bounty.deadline}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">{bounty.participants} participants</span>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {bounty.difficulty}
+                        <Badge 
+                          variant={bounty.status === "active" ? "default" : "secondary"}
+                          className={bounty.status === "active" ? "glow-primary" : ""}
+                        >
+                          {bounty.status.charAt(0).toUpperCase() + bounty.status.slice(1)}
                         </Badge>
                       </div>
-                      <Button 
-                        disabled={bounty.status === "Completed"}
-                        className={bounty.status === "Active" ? "glow-primary" : ""}
-                      >
-                        {bounty.status === "Active" ? "Join Bounty" : "View Results"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Create Bounty */}
-            <Card className="glass">
-              <CardContent className="p-6 text-center">
-                <Trophy className="w-12 h-12 text-chart-warning mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Create Your Own Bounty</h3>
-                <p className="text-muted-foreground mb-4">
-                  Have an analytics challenge? Create a bounty and let the community solve it.
-                </p>
-                <Button className="glow-primary">
-                  Create New Bounty
-                </Button>
-              </CardContent>
-            </Card>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-6">
+                          <div className="flex items-center space-x-2">
+                            <DollarSign className="w-4 h-4 text-chart-success" />
+                            <span className="font-semibold text-chart-success">
+                              {bounty.reward_amount} {bounty.reward_token}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              Due {formatDeadline(bounty.deadline)}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              {bounty.current_participants} participant{bounty.current_participants !== 1 ? 's' : ''}
+                              {bounty.max_participants ? ` / ${bounty.max_participants}` : ''}
+                            </span>
+                          </div>
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {bounty.difficulty}
+                          </Badge>
+                        </div>
+                        <Button 
+                          onClick={() => handleJoinBounty(bounty.id)}
+                          disabled={bounty.status !== "active" || bounty.creator_id === user?.id}
+                          className={bounty.status === "active" ? "glow-primary" : ""}
+                        >
+                          {bounty.creator_id === user?.id ? "Your Bounty" : 
+                           bounty.status === "active" ? "Join Bounty" : "View Results"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </main>
         </div>
       </div>

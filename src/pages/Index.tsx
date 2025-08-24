@@ -32,7 +32,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="flex">
-        <Sidebar />
+        <AuthenticatedSidebar />
         <div className="flex-1">
           <Header 
             title="Analytics Dashboard" 
