@@ -1,6 +1,6 @@
 import * as React from "react"
+import { useEffect, useState } from 'react';
 import * as RechartsPrimitive from "recharts"
-
 import { cn } from "@/lib/utils"
 
 interface ChartProps {
@@ -10,6 +10,115 @@ interface ChartProps {
   yAxis?: string;
   aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
   className?: string;
+}
+
+interface LiveChartProps {
+  title: string;
+  method: string;
+  dataKey: string;
+  color?: string;
+}
+
+export function LiveChart({ title, method, dataKey, color = "#8884d8" }: LiveChartProps) {
+  const [data, setData] = useState<Array<{ timestamp: number; value: number }>>([]);
+  const rpcEndpoint = "https://36c4832f2e9b.ngrok-free.app";
+  const corsProxy = "https://corsproxy.io/?";
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        console.log(`Fetching ${method} from ${rpcEndpoint}...`);
+        const response = await fetch(corsProxy + encodeURIComponent(rpcEndpoint), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: method,
+            params: ['latest'],
+            id: 1
+          })
+        });
+        
+        if (!response.ok) {
+          console.error('RPC request failed:', response.status, response.statusText);
+          const text = await response.text();
+          console.error('Response text:', text);
+          return;
+        }
+
+        const result = await response.json();
+        console.log(`${method} response:`, result);
+        
+        const now = Date.now();
+        
+        let value = 0;
+        if (method === 'starknet_getBlockWithTxs') {
+          if (result.result?.transactions) {
+            value = result.result.transactions.length;
+            console.log('Transaction count:', value);
+          } else {
+            console.warn('No transactions found in response');
+          }
+        } else if (method === 'starknet_getStateUpdate') {
+          if (result.result?.state_diff?.storage_diffs) {
+            value = result.result.state_diff.storage_diffs.length;
+            console.log('Storage diffs count:', value);
+          } else if (result.result?.state_diff) {
+            value = Object.keys(result.result.state_diff).length;
+            console.log('State diff changes:', value);
+          } else {
+            console.warn('No state diffs found in response');
+          }
+        }
+
+        setData(prev => {
+          const newData = [...prev.slice(-30), { timestamp: now, value }];
+          console.log('New data point:', { timestamp: now, value });
+          console.log('Chart data:', newData);
+          return newData;
+        });
+      } catch (error) {
+        console.error('RPC call failed:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchData();
+    
+    // Update every 5 seconds
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
+  }, [method]);
+
+  return (
+    <div className="w-full p-4 border rounded-lg shadow-sm">
+      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+      <div className="h-[300px]">
+        <RechartsPrimitive.ResponsiveContainer width="100%" height="100%">
+          <RechartsPrimitive.LineChart data={data}>
+            <RechartsPrimitive.XAxis 
+              dataKey="timestamp"
+              tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString()}
+            />
+            <RechartsPrimitive.YAxis />
+            <RechartsPrimitive.Tooltip
+              labelFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString()}
+              formatter={(value: number) => [value, title]}
+            />
+            <RechartsPrimitive.Line 
+              type="monotone"
+              dataKey="value"
+              stroke={color}
+              dot={false}
+              strokeWidth={2}
+            />
+          </RechartsPrimitive.LineChart>
+        </RechartsPrimitive.ResponsiveContainer>
+      </div>
+    </div>
+  );
 }
 
 export function ChartComponent({ type, data, xAxis, yAxis, aggregation = 'sum', className }: ChartProps) {
