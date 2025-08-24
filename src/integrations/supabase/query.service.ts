@@ -1,11 +1,25 @@
 import { supabase } from './client';
-// Temporary type definitions until we have proper database types
-interface SaveQueryParams {
-    title: string;
-    query_text: string;
-    description?: string;
-    is_public?: boolean;
+import type { Database } from './database.types';
+interface VisualizationConfig {
+    type: 'bar' | 'line' | 'pie' | 'area';
+    xAxis?: string;
+    yAxis?: string;
+    aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
 }
+
+type VisualizationConfig = {
+    type: 'bar' | 'line' | 'pie' | 'area';
+    xAxis?: string;
+    yAxis?: string;
+    aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+};
+
+type SaveQueryParams = Partial<Database['public']['Tables']['queries']['Insert']> & {
+    metadata?: {
+        visualization?: VisualizationConfig;
+        [key: string]: any;
+    };
+};
 
 interface QueryResult {
     id: string;
@@ -34,16 +48,20 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 export class QueryService {
     private subscriptions: Map<string, RealtimeChannel> = new Map();
 
-    async saveQuery(params: SaveQueryParams): Promise<SavedQuery | null> {
+    async saveQuery(params: SaveQueryParams): Promise<Database['public']['Tables']['queries']['Row'] | null> {
         const user = await this.getCurrentUser();
         if (!user) return null;
 
+        const insertData: Database['public']['Tables']['queries']['Insert'] = {
+            ...params,
+            creator_id: user.id,
+            title: params.title || 'Untitled Query',
+            query_text: params.query_text || '',
+        };
+
         const { data, error } = await supabase
             .from('queries')
-            .insert({
-                ...params,
-                creator_id: user.id
-            })
+            .upsert(insertData)
             .select()
             .single();
 
@@ -51,7 +69,7 @@ export class QueryService {
         return data;
     }
 
-    async updateQuery(id: string, params: Partial<SaveQueryParams>): Promise<SavedQuery | null> {
+    async updateQuery(id: string, params: Partial<Database['public']['Tables']['queries']['Update']>): Promise<Database['public']['Tables']['queries']['Row'] | null> {
         const { data, error } = await supabase
             .from('queries')
             .update(params)

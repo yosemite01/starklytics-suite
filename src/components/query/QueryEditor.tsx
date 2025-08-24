@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "../ui/use-toast";
+import { QueryVisualizer } from "./QueryVisualizer";
 
 const queryService = new QueryService();
 
@@ -51,6 +52,8 @@ LIMIT 100;`
     }
   };
 
+  const [currentVisualization, setCurrentVisualization] = useState(null);
+
   const runQuery = async () => {
     setIsRunning(true);
     try {
@@ -73,6 +76,9 @@ LIMIT 100;`
       const unsubscribe = queryService.subscribeToQueryResults(queryId, (result) => {
         setQueryResults(result.results);
       });
+
+      // Reset visualization when running new query
+      setCurrentVisualization(null);
 
       // Cleanup subscription on component unmount
       return () => unsubscribe();
@@ -276,36 +282,57 @@ LIMIT 100;`
             </div>
           </CardContent>
         </Card>
-      ) : (
-        <Card className="glass">
-          <CardContent className="p-4">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-2 text-muted-foreground">Block Number</th>
-                    <th className="text-left p-2 text-muted-foreground">Transactions</th>
-                    <th className="text-left p-2 text-muted-foreground">Gas Used</th>
-                    <th className="text-left p-2 text-muted-foreground">Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...Array(5)].map((_, i) => (
-                    <tr key={i} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="p-2 font-mono">{123456 - i}</td>
-                      <td className="p-2">{Math.floor(Math.random() * 100) + 50}</td>
-                      <td className="p-2 font-mono">{(Math.random() * 1000000).toFixed(0)}</td>
-                      <td className="p-2 text-muted-foreground">
-                        {new Date(Date.now() - i * 60000).toLocaleString()}
-                      </td>
+      ) : queryResults ? (
+        <>
+          <Card className="glass">
+            <CardContent className="p-4">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      {Object.keys(queryResults[0] || {}).map((header) => (
+                        <th key={header} className="text-left p-2 text-muted-foreground">
+                          {header}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  </thead>
+                  <tbody>
+                    {queryResults.map((row, i) => (
+                      <tr key={i} className="border-b border-border/50 hover:bg-muted/20">
+                        {Object.values(row).map((value: any, j) => (
+                          <td key={j} className="p-2 font-mono">
+                            {typeof value === 'object' ? JSON.stringify(value) : value?.toString()}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <QueryVisualizer 
+            data={queryResults} 
+            onVisualizationSave={(config) => {
+              setCurrentVisualization(config);
+              // Update the query metadata with visualization config
+              if (savedQueries.find(q => q.query_text === query)?.id) {
+                queryService.saveQuery({
+                  id: savedQueries.find(q => q.query_text === query)?.id,
+                  query_text: query,
+                  metadata: { visualization: config }
+                });
+              }
+              toast({
+                title: "Visualization saved",
+                description: "You can now use this visualization in your dashboard.",
+              });
+            }} 
+          />
+        </>
+      ) : null}
     </div>
   );
 }

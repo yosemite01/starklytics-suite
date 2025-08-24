@@ -9,18 +9,25 @@ interface DashboardWidgetProps {
   type: 'chart' | 'table' | 'pie' | 'line';
   query: SavedQuery;
   title: string;
+  onRemove?: () => void;
 }
 
 const queryService = new QueryService();
 
-export function DashboardWidget({ type, query, title }: DashboardWidgetProps) {
+export function DashboardWidget({ type: defaultType, query, title, onRemove }: DashboardWidgetProps) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [visualConfig, setVisualConfig] = useState<any>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
+        // Get visualization config from query metadata
+        if (query.metadata?.visualization) {
+          setVisualConfig(query.metadata.visualization);
+        }
+        
         const result = await queryService.runQuery(query.id, query.query_text);
         if (result) {
           setData(result.results);
@@ -44,10 +51,37 @@ export function DashboardWidget({ type, query, title }: DashboardWidgetProps) {
 
   const renderContent = () => {
     if (loading) {
-      return <div>Loading...</div>;
+      return (
+        <div className="h-full flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      );
     }
 
-    switch (type) {
+    if (!data.length) {
+      return (
+        <div className="h-full flex items-center justify-center text-muted-foreground">
+          No data available
+        </div>
+      );
+    }
+
+    // Use visualization config if available, otherwise fallback to default type
+    if (visualConfig) {
+      return (
+        <Chart
+          type={visualConfig.type}
+          data={data}
+          xAxis={visualConfig.xAxis}
+          yAxis={visualConfig.yAxis}
+          aggregation={visualConfig.aggregation}
+          className="w-full h-[300px]"
+        />
+      );
+    }
+
+    // Fallback to default rendering
+    switch (defaultType) {
       case 'chart':
         return (
           <Chart

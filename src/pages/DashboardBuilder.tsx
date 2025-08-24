@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/database.types";
 import type { DashboardsInsert } from '@/integrations/supabase/dashboard.types';
@@ -36,15 +37,16 @@ const INITIAL_LAYOUT: Layout = {
 };
 
 const widgetTypes = [
-  { type: "chart" as WidgetType, name: "Bar Chart", icon: BarChart3 },
+  { type: "bar" as WidgetType, name: "Bar Chart", icon: BarChart3 },
   { type: "pie" as WidgetType, name: "Pie Chart", icon: PieChart },
   { type: "line" as WidgetType, name: "Line Chart", icon: LineChart },
+  { type: "area" as WidgetType, name: "Area Chart", icon: LineChart },
   { type: "table" as WidgetType, name: "Table", icon: Table },
 ];
 
 // Types
 type BreakPoint = "lg" | "md" | "sm" | "xs" | "xxs";
-type WidgetType = "chart" | "pie" | "line" | "table";
+type WidgetType = "bar" | "pie" | "line" | "table" | "area";
 
 interface LayoutItem {
   i: string;
@@ -78,11 +80,19 @@ interface SerializedLayout {
   xxs: SerializedLayoutItem[];
 }
 
+interface VisualizationConfig {
+  type: 'bar' | 'line' | 'pie' | 'area' | 'table';
+  xAxis?: string;
+  yAxis?: string;
+  aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+}
+
 interface Widget {
   id: string;
   type: WidgetType;
   title: string;
   savedQuery?: SavedQuery;
+  visualConfig?: VisualizationConfig;
   x: number;
   y: number;
   w: number;
@@ -446,9 +456,12 @@ function DashboardBuilder() {
                         <CardContent>
                           {widget.savedQuery ? (
                             <DashboardWidget
-                              type={widget.type}
-                              query={widget.savedQuery as any}
+                              type={widget.visualConfig?.type || widget.type}
+                              query={widget.savedQuery}
                               title={widget.title}
+                              xAxis={widget.visualConfig?.xAxis}
+                              yAxis={widget.visualConfig?.yAxis}
+                              aggregation={widget.visualConfig?.aggregation}
                             />
                           ) : (
                             <div className="bg-muted/50 rounded-lg h-32 flex items-center justify-center">
@@ -485,6 +498,8 @@ function DashboardBuilder() {
                     <Label>Widget Type</Label>
                     <Input value={selectedWidgetData.type} disabled className="capitalize" />
                   </div>
+                  
+                  {/* Query Selection */}
                   <div className="md:col-span-2 space-y-2">
                     <Label>Query</Label>
                     <Card className="p-4">
@@ -495,7 +510,7 @@ function DashboardBuilder() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => updateWidget(selectedWidgetData.id, { savedQuery: undefined })}
+                              onClick={() => updateWidget(selectedWidgetData.id, { savedQuery: undefined, visualConfig: undefined })}
                             >
                               Change Query
                             </Button>
@@ -517,6 +532,128 @@ function DashboardBuilder() {
                       )}
                     </Card>
                   </div>
+
+                  {/* Visualization Configuration */}
+                  {selectedWidgetData.savedQuery && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Visualization Type</Label>
+                        <Select 
+                          value={selectedWidgetData.visualConfig?.type || selectedWidgetData.type}
+                          onValueChange={(value: any) => 
+                            updateWidget(selectedWidgetData.id, {
+                              visualConfig: {
+                                ...selectedWidgetData.visualConfig,
+                                type: value
+                              }
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {widgetTypes.map((type) => (
+                              <SelectItem key={type.type} value={type.type}>
+                                <div className="flex items-center">
+                                  <type.icon className="w-4 h-4 mr-2" />
+                                  {type.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>X-Axis</Label>
+                        <Select 
+                          value={selectedWidgetData.visualConfig?.xAxis || ""}
+                          onValueChange={(value) => 
+                            updateWidget(selectedWidgetData.id, {
+                              visualConfig: {
+                                ...selectedWidgetData.visualConfig,
+                                xAxis: value
+                              }
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select X-Axis" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedWidgetData.savedQuery.results?.[0]?.results &&
+                              Object.keys(selectedWidgetData.savedQuery.results[0].results[0] || {}).map((key) => (
+                                <SelectItem key={key} value={key}>
+                                  {key}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Y-Axis</Label>
+                        <Select 
+                          value={selectedWidgetData.visualConfig?.yAxis || ""}
+                          onValueChange={(value) => 
+                            updateWidget(selectedWidgetData.id, {
+                              visualConfig: {
+                                ...selectedWidgetData.visualConfig,
+                                yAxis: value
+                              }
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Y-Axis" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedWidgetData.savedQuery.results?.[0]?.results &&
+                              Object.keys(selectedWidgetData.savedQuery.results[0].results[0] || {})
+                                .filter(key => {
+                                  const value = selectedWidgetData.savedQuery?.results?.[0]?.results[0][key];
+                                  return typeof value === 'number' || !isNaN(Number(value));
+                                })
+                                .map((key) => (
+                                  <SelectItem key={key} value={key}>
+                                    {key}
+                                  </SelectItem>
+                                ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {(selectedWidgetData.visualConfig?.type === 'bar' || 
+                        selectedWidgetData.visualConfig?.type === 'pie') && (
+                        <div className="space-y-2">
+                          <Label>Aggregation</Label>
+                          <Select 
+                            value={selectedWidgetData.visualConfig?.aggregation || "sum"}
+                            onValueChange={(value: any) => 
+                              updateWidget(selectedWidgetData.id, {
+                                visualConfig: {
+                                  ...selectedWidgetData.visualConfig,
+                                  aggregation: value
+                                }
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="sum">Sum</SelectItem>
+                              <SelectItem value="avg">Average</SelectItem>
+                              <SelectItem value="count">Count</SelectItem>
+                              <SelectItem value="min">Min</SelectItem>
+                              <SelectItem value="max">Max</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
