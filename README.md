@@ -1,8 +1,15 @@
-# Welcome to your Lovable project
 
-## Project info
+# Starklytics Suite MVP
 
-**URL**: https://lovable.dev/projects/6bdb15f6-ff1e-4786-97d1-5d200f134246
+
+## Project Overview
+
+Starklytics Suite is an MVP analytics and bounty platform for Starknet. It allows users to:
+- View analytics dashboards
+- Create and join bounties
+- Manage their Starknet wallet (Ready, Argent)
+- Receive tokens as rewards
+- View and edit their profile
 
 ## How can I edit this code?
 
@@ -50,15 +57,33 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
 
-This project is built with:
+## Tech Stack
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+## Cairo Smart Contract Integration (MVP)
+
+The following functions should be implemented in the Cairo smart contract and callable from the frontend:
+
+- `create_bounty(title: felt, description: felt, reward_amount: felt, deadline: felt)`
+	- Called when a user creates a new bounty.
+- `join_bounty(bounty_id: felt, participant: felt)`
+	- Called when a user joins a bounty.
+- `submit_solution(bounty_id: felt, participant: felt, solution_hash: felt)`
+	- Called when a participant submits a solution.
+- `distribute_reward(bounty_id: felt, winner: felt)`
+	- Called by the contract owner/admin to distribute tokens to the winner.
+- `get_bounty_details(bounty_id: felt) -> (details: BountyStruct)`
+	- Called to fetch bounty details for display.
+- `get_participant_status(bounty_id: felt, participant: felt) -> (status: felt)`
+	- Called to check if a user has joined or submitted.
+
+These are the minimum required for the MVP. Extend as needed for production.
+
 
 ## How can I deploy this project?
 

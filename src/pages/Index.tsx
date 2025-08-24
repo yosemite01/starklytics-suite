@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/layout/Sidebar";
+import { AuthenticatedSidebar } from "@/components/layout/AuthenticatedSidebar";
 import { Header } from "@/components/layout/Header";
 import { StatsOverview } from "@/components/dashboard/StatsOverview";
 import { QueryEditor } from "@/components/query/QueryEditor";
@@ -157,8 +158,8 @@ const Index = () => {
                   ))}
                 </div>
                 <div className="mt-4">
-                  <Button className="w-full">
-                    View All Bounties
+                  <Button className="w-full" asChild>
+                    <a href="/bounties">View All Bounties</a>
                   </Button>
                 </div>
               </CardContent>

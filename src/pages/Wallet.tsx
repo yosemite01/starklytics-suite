@@ -22,7 +22,7 @@ import {
   TrendingDown
 } from "lucide-react";
 
-const RPC_ENDPOINT = "https://36c4832f2e9b.ngrok-free.app";
+
 
 interface Transaction {
   hash: string;
@@ -43,7 +43,7 @@ interface TokenBalance {
 export default function Wallet() {
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
-  const [selectedWallet, setSelectedWallet] = useState<"argent" | "braavos" | null>(null);
+  const [selectedWallet, setSelectedWallet] = useState<"argent" | "ready" | null>(null);
   
   const [tokenBalances] = useState<TokenBalance[]>([
     { symbol: "ETH", balance: "2.45", usdValue: "4,890.50", change24h: 2.34 },
@@ -78,14 +78,14 @@ export default function Wallet() {
     },
   ]);
 
-  const connectWallet = async (walletType: "argent" | "braavos") => {
+  const connectWallet = async (walletType: "argent" | "ready") => {
     setSelectedWallet(walletType);
     try {
       // Simulate wallet connection
       await new Promise(resolve => setTimeout(resolve, 1500));
       setIsConnected(true);
       setWalletAddress("0x1234567890abcdef1234567890abcdef12345678");
-      console.log(`Connected to ${walletType} wallet via ${RPC_ENDPOINT}`);
+      console.log(`Connected to ${walletType} wallet`);
     } catch (error) {
       console.error("Error connecting wallet:", error);
     }
@@ -149,21 +149,21 @@ export default function Wallet() {
                 </Button>
                 
                 <Button
-                  onClick={() => connectWallet("braavos")}
+                  onClick={() => connectWallet("ready")}
                   variant="outline"
                   className="w-full h-16 flex items-center justify-between p-4 hover:bg-primary/10 hover:border-primary"
-                  disabled={selectedWallet === "braavos"}
+                  disabled={selectedWallet === "ready"}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">B</span>
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">R</span>
                     </div>
                     <div className="text-left">
-                      <p className="font-medium">Braavos</p>
-                      <p className="text-xs text-muted-foreground">Security-focused wallet</p>
+                      <p className="font-medium">Ready</p>
+                      <p className="text-xs text-muted-foreground">Connect to Ready wallet</p>
                     </div>
                   </div>
-                  {selectedWallet === "braavos" && (
+                  {selectedWallet === "ready" && (
                     <div className="animate-spin">
                       <Zap className="w-4 h-4" />
                     </div>
@@ -173,7 +173,7 @@ export default function Wallet() {
                 <div className="pt-4 border-t border-border">
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Shield className="w-4 h-4" />
-                    <span>Secure connection via {RPC_ENDPOINT}</span>
+                    <span>Ready wallet connected</span>
                   </div>
                 </div>
               </CardContent>
