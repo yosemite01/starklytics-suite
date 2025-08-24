@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Play, Save, Download, History, Database } from "lucide-react";
+import { QueryService } from "@/integrations/supabase/query.service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "../ui/use-toast";
+
+const queryService = new QueryService();
 
 export function QueryEditor() {
+  const { toast } = useToast();
   const [query, setQuery] = useState(
     `-- Starknet Analytics Query
 SELECT 
@@ -18,13 +27,94 @@ ORDER BY block_number DESC
 LIMIT 100;`
   );
   const [isRunning, setIsRunning] = useState(false);
+  const [savedQueries, setSavedQueries] = useState([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [queryTitle, setQueryTitle] = useState("");
+  const [queryDescription, setQueryDescription] = useState("");
+  const [queryResults, setQueryResults] = useState(null);
+
+  useEffect(() => {
+    loadSavedQueries();
+  }, []);
+
+  const loadSavedQueries = async () => {
+    try {
+      const queries = await queryService.getQueries();
+      setSavedQueries(queries);
+    } catch (error) {
+      toast({
+        title: "Error loading queries",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const runQuery = async () => {
     setIsRunning(true);
-    // Simulate query execution
-    setTimeout(() => {
+    try {
+      // Save query first if it's not saved
+      let queryId = savedQueries.find(q => q.query_text === query)?.id;
+      
+      if (!queryId) {
+        const savedQuery = await queryService.saveQuery({
+          title: 'Untitled Query',
+          query_text: query,
+          is_public: false,
+        });
+        queryId = savedQuery.id;
+      }
+
+      const result = await queryService.runQuery(queryId, query);
+      setQueryResults(result.results);
+      
+      // Subscribe to real-time updates
+      const unsubscribe = queryService.subscribeToQueryResults(queryId, (result) => {
+        setQueryResults(result.results);
+      });
+
+      // Cleanup subscription on component unmount
+      return () => unsubscribe();
+    } catch (error) {
+      toast({
+        title: "Error running query",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setIsRunning(false);
-    }, 2000);
+    }
+  };
+
+  const handleSaveQuery = async () => {
+    try {
+      await queryService.saveQuery({
+        title: queryTitle,
+        description: queryDescription,
+        query_text: query,
+        is_public: false,
+      });
+      
+      setShowSaveDialog(false);
+      loadSavedQueries();
+      
+      toast({
+        title: "Query saved successfully",
+        description: "Your query has been saved and can be accessed from the history.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error saving query",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadQuery = (savedQuery) => {
+    setQuery(savedQuery.query_text);
+    setShowHistoryDialog(false);
   };
 
   return (
@@ -39,15 +129,96 @@ LIMIT 100;`
           </Badge>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <History className="w-4 h-4 mr-2" />
-            History
-          </Button>
-          <Button variant="outline" size="sm">
-            <Save className="w-4 h-4 mr-2" />
-            Save
-          </Button>
-          <Button variant="outline" size="sm">
+          <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <History className="w-4 h-4 mr-2" />
+                History
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[625px]">
+              <DialogHeader>
+                <DialogTitle>Query History</DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="h-[400px] w-full pr-4">
+                <div className="space-y-4">
+                  {savedQueries.map((savedQuery) => (
+                    <Card key={savedQuery.id} className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-medium">{savedQuery.title}</h4>
+                          {savedQuery.description && (
+                            <p className="text-sm text-muted-foreground">{savedQuery.description}</p>
+                          )}
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => loadQuery(savedQuery)}>
+                          Load
+                        </Button>
+                      </div>
+                      <pre className="text-xs bg-muted p-2 rounded-md">
+                        {savedQuery.query_text}
+                      </pre>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Save className="w-4 h-4 mr-2" />
+                Save
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Save Query</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={queryTitle}
+                    onChange={(e) => setQueryTitle(e.target.value)}
+                    placeholder="Enter a title for your query"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description (optional)</Label>
+                  <Input
+                    id="description"
+                    value={queryDescription}
+                    onChange={(e) => setQueryDescription(e.target.value)}
+                    placeholder="Enter a description for your query"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleSaveQuery}>Save Query</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (queryResults) {
+                const blob = new Blob([JSON.stringify(queryResults, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `query-results-${new Date().toISOString()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }
+            }}
+          >
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>

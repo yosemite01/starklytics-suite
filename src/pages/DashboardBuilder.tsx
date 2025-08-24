@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/database.types";
 import type { DashboardsInsert } from '@/integrations/supabase/dashboard.types';
+import { QueryService } from '@/integrations/supabase/query.service';
+import type { SavedQuery } from '@/types/query.types';
 import { Plus, BarChart3, PieChart, LineChart, Table, Save, Eye, Grid, Layout, History, Download } from "lucide-react";
 import { Responsive, WidthProvider } from "react-grid-layout";
+import { DashboardWidget } from "@/components/dashboard/DashboardWidget";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import "react-grid-layout/css/styles.css";
 // The resizable styles are included in react-grid-layout
 
@@ -77,7 +82,7 @@ interface Widget {
   id: string;
   type: WidgetType;
   title: string;
-  query: string;
+  savedQuery?: SavedQuery;
   x: number;
   y: number;
   w: number;
@@ -107,17 +112,37 @@ function DashboardBuilder() {
     layouts: INITIAL_LAYOUT,
     widgets: []
   });
+  const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
+  const [showQueryDialog, setShowQueryDialog] = useState(false);
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
+  const queryService = new QueryService();
+
+  useEffect(() => {
+    loadSavedQueries();
+  }, []);
+
+  const loadSavedQueries = async () => {
+    try {
+      const queries = await queryService.getQueries();
+      setSavedQueries(queries);
+    } catch (error) {
+      toast({
+        title: "Error loading queries",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null);
 
   const addWidget = (type: WidgetType) => {
     const newWidget: Widget = {
       id: `widget-${Date.now()}`,
       type,
-      title: `New ${type} widget`,
-      query: "",
-      x: (dashboardState.widgets.length * 4) % COLS.lg,
-      y: Math.floor(dashboardState.widgets.length * 4 / COLS.lg) * 4,
-      w: 4,
+      title: `New ${type} Widget`,
+      x: 0,
+      y: Infinity,
+      w: 6,
       h: 4
     };
     
@@ -179,18 +204,24 @@ function DashboardBuilder() {
       }
 
       const serializedState = serializeDashboardState(dashboardState);
+      const serializedWidgets = dashboardState.widgets.map(widget => ({
+        ...widget,
+        savedQueryId: widget.savedQuery?.id,
+        savedQuery: undefined
+      }));
+
       const dashboardData: DashboardsInsert = {
         user_id: session.data.session.user.id,
         name: dashboardName,
         description: dashboardDescription,
-        layouts: serializedState.layouts as Json,
-        widgets: serializedState.widgets as Json,
+        layouts: JSON.parse(JSON.stringify(serializedState.layouts)) as Json,
+        widgets: JSON.parse(JSON.stringify(serializedWidgets)) as Json,
         rpc_endpoint: RPC_ENDPOINT,
       };
 
       const { error } = await supabase
         .from('dashboards')
-        .insert([dashboardData]);
+        .insert(dashboardData as any);
 
       if (error) throw error;
 
@@ -280,7 +311,7 @@ function DashboardBuilder() {
   };
 
   // Get selected widget for configuration
-  const selectedWidgetData = dashboardState.widgets.find(w => w.id === selectedWidget);
+  const selectedWidgetData = dashboardState.widgets.find(w => w.id === selectedWidgetId);
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -403,27 +434,29 @@ function DashboardBuilder() {
                     <div key={widget.id} data-grid={{ x: widget.x, y: widget.y, w: widget.w, h: widget.h }}>
                       <Card
                         className={`cursor-pointer transition-all border-2 ${
-                          selectedWidget === widget.id 
+                          selectedWidgetId === widget.id 
                             ? 'border-primary glow-primary' 
                             : 'border-border hover:border-primary/50'
                         }`}
-                        onClick={() => setSelectedWidget(widget.id)}
+                        onClick={() => setSelectedWidgetId(widget.id)}
                       >
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm">{widget.title}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="bg-muted/50 rounded-lg h-32 flex items-center justify-center">
-                            <span className="text-muted-foreground capitalize">
-                              {widget.type} Preview
-                            </span>
-                          </div>
-                          <div className="mt-2">
-                            <Label className="text-xs text-muted-foreground">Query:</Label>
-                            <code className="block text-xs bg-muted/30 p-1 rounded mt-1 truncate">
-                              {widget.query || "No query defined"}
-                            </code>
-                          </div>
+                          {widget.savedQuery ? (
+                            <DashboardWidget
+                              type={widget.type}
+                              query={widget.savedQuery as any}
+                              title={widget.title}
+                            />
+                          ) : (
+                            <div className="bg-muted/50 rounded-lg h-32 flex items-center justify-center">
+                              <span className="text-muted-foreground capitalize">
+                                {widget.type} Preview
+                              </span>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     </div>
@@ -434,7 +467,7 @@ function DashboardBuilder() {
           </Card>
 
           {/* Widget Configuration */}
-          {selectedWidget && selectedWidgetData && (
+          {selectedWidgetId && selectedWidgetData && (
             <Card className="glass border-border">
               <CardHeader>
                 <CardTitle>Widget Configuration</CardTitle>
@@ -453,19 +486,81 @@ function DashboardBuilder() {
                     <Input value={selectedWidgetData.type} disabled className="capitalize" />
                   </div>
                   <div className="md:col-span-2 space-y-2">
-                    <Label>SQL Query</Label>
-                    <Textarea
-                      value={selectedWidgetData.query}
-                      onChange={(e) => updateWidget(selectedWidgetData.id, { query: e.target.value })}
-                      placeholder="Enter your SQL query here"
-                      className="font-mono text-sm"
-                      rows={4}
-                    />
+                    <Label>Query</Label>
+                    <Card className="p-4">
+                      {selectedWidgetData.savedQuery ? (
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-medium">{selectedWidgetData.savedQuery.title}</h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateWidget(selectedWidgetData.id, { savedQuery: undefined })}
+                            >
+                              Change Query
+                            </Button>
+                          </div>
+                          <pre className="text-xs bg-muted p-2 rounded-md">
+                            {selectedWidgetData.savedQuery.query_text}
+                          </pre>
+                        </div>
+                      ) : (
+                        <div className="text-center space-y-4 py-4">
+                          <p className="text-sm text-muted-foreground">No query selected</p>
+                          <Button 
+                            onClick={() => setShowQueryDialog(true)}
+                            variant="secondary"
+                          >
+                            Select a Query
+                          </Button>
+                        </div>
+                      )}
+                    </Card>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
+
+          {/* Query Selection Dialog */}
+          <Dialog open={showQueryDialog} onOpenChange={setShowQueryDialog}>
+            <DialogContent className="sm:max-w-[625px]">
+              <DialogHeader>
+                <DialogTitle>Select a Query</DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="h-[400px] w-full pr-4">
+                <div className="space-y-4">
+                  {savedQueries.map((query) => (
+                    <Card 
+                      key={query.id} 
+                      className="p-4 cursor-pointer hover:border-primary"
+                      onClick={() => {
+                        if (selectedWidgetData) {
+                          updateWidget(selectedWidgetData.id, { savedQuery: query });
+                          setShowQueryDialog(false);
+                        }
+                      }}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-medium">{query.title}</h4>
+                          {query.description && (
+                            <p className="text-sm text-muted-foreground">{query.description}</p>
+                          )}
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          Select
+                        </Button>
+                      </div>
+                      <pre className="text-xs bg-muted p-2 rounded-md">
+                        {query.query_text}
+                      </pre>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
       <Toaster />

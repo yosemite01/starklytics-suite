@@ -9,6 +9,73 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      queries: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          title: string
+          description: string | null
+          query_text: string
+          creator_id: string
+          metadata: Json | null
+          is_public: boolean
+          last_run_at: string | null
+          favorite: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          title: string
+          description?: string | null
+          query_text: string
+          creator_id: string
+          metadata?: Json | null
+          is_public?: boolean
+          last_run_at?: string | null
+          favorite?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          title?: string
+          description?: string | null
+          query_text?: string
+          creator_id?: string
+          metadata?: Json | null
+          is_public?: boolean
+          last_run_at?: string | null
+          favorite?: boolean
+        }
+      }
+      query_results: {
+        Row: {
+          id: string
+          created_at: string
+          query_id: string
+          results: Json
+          execution_time: string | null
+          row_count: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          query_id: string
+          results: Json
+          execution_time?: string | null
+          row_count?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          query_id?: string
+          results?: Json
+          execution_time?: string | null
+          row_count?: number | null
+        }
+      }
       bounties: {
         Row: {
           id: string
