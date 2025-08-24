@@ -6,28 +6,8 @@ import { QueryEditor } from "@/components/query/QueryEditor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  BarChart, 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Area,
-  AreaChart
-} from "recharts";
-import { TrendingUp, Activity, Award, Zap } from "lucide-react";
-
-const chartData = [
-  { name: "Jan", transactions: 4000, value: 2400 },
-  { name: "Feb", transactions: 3000, value: 1398 },
-  { name: "Mar", transactions: 2000, value: 9800 },
-  { name: "Apr", transactions: 2780, value: 3908 },
-  { name: "May", transactions: 1890, value: 4800 },
-  { name: "Jun", transactions: 2390, value: 3800 },
-];
+import { Award, Zap } from "lucide-react";
+import { LiveChart } from "@/components/ui/chart";
 
 const Index = () => {
   return (
@@ -47,73 +27,24 @@ const Index = () => {
             {/* Charts Section */}
             <div className="grid gap-6 lg:grid-cols-2">
               <Card className="glass glow-chart">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5 text-chart-primary" />
-                    <span>Transaction Volume</span>
-                    <Badge variant="secondary">Live</Badge>
-                  </CardTitle>
-                </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="transactionGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--chart-primary))" stopOpacity={0.8}/>
-                          <stop offset="100%" stopColor="hsl(var(--chart-primary))" stopOpacity={0.1}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip 
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px"
-                        }}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="transactions" 
-                        stroke="hsl(var(--chart-primary))" 
-                        fill="url(#transactionGradient)"
-                        strokeWidth={2}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <LiveChart 
+                    title="Transaction Volume"
+                    method="starknet_getBlockWithTxs"
+                    dataKey="value"
+                    color="hsl(var(--chart-primary))"
+                  />
                 </CardContent>
               </Card>
 
               <Card className="glass">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Activity className="w-5 h-5 text-chart-secondary" />
-                    <span>Network Activity</span>
-                  </CardTitle>
-                </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip 
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px"
-                        }}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="value" 
-                        stroke="hsl(var(--chart-secondary))" 
-                        strokeWidth={3}
-                        dot={{ fill: "hsl(var(--chart-secondary))", strokeWidth: 2, r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <LiveChart 
+                    title="Network Activity"
+                    method="starknet_getStateUpdate"
+                    dataKey="value"
+                    color="hsl(var(--chart-secondary))"
+                  />
                 </CardContent>
               </Card>
             </div>
