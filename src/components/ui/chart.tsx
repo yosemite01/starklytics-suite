@@ -3,7 +3,127 @@ import * as RechartsPrimitive from "recharts"
 
 import { cn } from "@/lib/utils"
 
-export { ChartContainer as Chart }
+interface ChartProps {
+  type: 'bar' | 'line' | 'pie' | 'area';
+  data: Record<string, any>[];
+  xAxis?: string;
+  yAxis?: string;
+  aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+  className?: string;
+}
+
+export function ChartComponent({ type, data, xAxis, yAxis, aggregation = 'sum', className }: ChartProps) {
+  // Process data based on aggregation if needed
+  const processedData = React.useMemo(() => {
+    if (!xAxis || !yAxis || !data.length) return data;
+
+    const groupedData = data.reduce((acc, row) => {
+      const key = row[xAxis];
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      if (typeof row[yAxis] === 'number') {
+        acc[key].push(row[yAxis]);
+      } else {
+        const num = Number(row[yAxis]);
+        if (!isNaN(num)) {
+          acc[key].push(num);
+        }
+      }
+      return acc;
+    }, {} as Record<string, number[]>);
+
+    return Object.entries(groupedData).map(([key, values]) => {
+      let value: number;
+      switch (aggregation) {
+        case 'sum':
+          value = values.reduce((sum, v) => sum + v, 0);
+          break;
+        case 'avg':
+          value = values.reduce((sum, v) => sum + v, 0) / values.length;
+          break;
+        case 'count':
+          value = values.length;
+          break;
+        case 'min':
+          value = Math.min(...values);
+          break;
+        case 'max':
+          value = Math.max(...values);
+          break;
+        default:
+          value = values[0] ?? 0;
+      }
+      return { [xAxis]: key, [yAxis]: value };
+    });
+  }, [data, xAxis, yAxis, aggregation]);
+
+  // Render appropriate chart type
+  const renderChart = () => {
+    const config = {
+      data: processedData,
+      margin: { top: 10, right: 30, left: 0, bottom: 0 },
+    };
+
+    switch (type) {
+      case 'bar':
+        return (
+          <RechartsPrimitive.BarChart {...config}>
+            <RechartsPrimitive.XAxis dataKey={xAxis} />
+            <RechartsPrimitive.YAxis />
+            <RechartsPrimitive.Tooltip />
+            <RechartsPrimitive.Bar dataKey={yAxis} fill="#8884d8" />
+          </RechartsPrimitive.BarChart>
+        );
+      case 'line':
+        return (
+          <RechartsPrimitive.LineChart {...config}>
+            <RechartsPrimitive.XAxis dataKey={xAxis} />
+            <RechartsPrimitive.YAxis />
+            <RechartsPrimitive.Tooltip />
+            <RechartsPrimitive.Line type="monotone" dataKey={yAxis} stroke="#8884d8" />
+          </RechartsPrimitive.LineChart>
+        );
+      case 'pie':
+        return (
+          <RechartsPrimitive.PieChart {...config}>
+            <RechartsPrimitive.Pie 
+              data={processedData} 
+              dataKey={yAxis}
+              nameKey={xAxis}
+              cx="50%" 
+              cy="50%" 
+              outerRadius={80} 
+              fill="#8884d8" 
+              label
+            />
+            <RechartsPrimitive.Tooltip />
+          </RechartsPrimitive.PieChart>
+        );
+      case 'area':
+        return (
+          <RechartsPrimitive.AreaChart {...config}>
+            <RechartsPrimitive.XAxis dataKey={xAxis} />
+            <RechartsPrimitive.YAxis />
+            <RechartsPrimitive.Tooltip />
+            <RechartsPrimitive.Area type="monotone" dataKey={yAxis} fill="#8884d8" stroke="#8884d8" />
+          </RechartsPrimitive.AreaChart>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className={cn("w-full h-full", className)}>
+      <RechartsPrimitive.ResponsiveContainer width="100%" height="100%">
+        {renderChart()}
+      </RechartsPrimitive.ResponsiveContainer>
+    </div>
+  );
+}
+
+export { ChartComponent as Chart }
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
