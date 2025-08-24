@@ -223,8 +223,6 @@ export type Database = {
           id: string
           price_per_month: number | null
           status: string
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
           subscription_type: Database["public"]["Enums"]["subscription_type"]
           updated_at: string
           user_id: string
@@ -236,8 +234,6 @@ export type Database = {
           id?: string
           price_per_month?: number | null
           status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           subscription_type: Database["public"]["Enums"]["subscription_type"]
           updated_at?: string
           user_id: string
@@ -249,8 +245,6 @@ export type Database = {
           id?: string
           price_per_month?: number | null
           status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           subscription_type?: Database["public"]["Enums"]["subscription_type"]
           updated_at?: string
           user_id?: string
@@ -274,7 +268,6 @@ export type Database = {
           id: string
           metadata: Json | null
           status: Database["public"]["Enums"]["transaction_status"] | null
-          stripe_payment_intent_id: string | null
           token: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
@@ -289,7 +282,6 @@ export type Database = {
           id?: string
           metadata?: Json | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
-          stripe_payment_intent_id?: string | null
           token?: string | null
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -304,7 +296,6 @@ export type Database = {
           id?: string
           metadata?: Json | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
-          stripe_payment_intent_id?: string | null
           token?: string | null
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string

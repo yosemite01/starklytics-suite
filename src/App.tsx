@@ -1,3 +1,4 @@
+import ContractEventsEDA from "./pages/ContractEventsEDA";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +17,9 @@ import DataVisualization from "./pages/DataVisualization";
 import Wallet from "./pages/Wallet";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import JoinBounty from "./pages/JoinBounty";
+import PlaceBounty from "./pages/PlaceBounty";
+
 
 const queryClient = new QueryClient();
 
@@ -43,6 +47,16 @@ const App = () => (
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/join-bounty" element={
+              <ProtectedRoute>
+                <JoinBounty />
+              </ProtectedRoute>
+            } />
+            <Route path="/place-bounty" element={
+              <ProtectedRoute>
+                <PlaceBounty />
               </ProtectedRoute>
             } />
             <Route path="/create-bounty" element={
@@ -73,6 +87,11 @@ const App = () => (
             <Route path="/wallet" element={
               <ProtectedRoute>
                 <Wallet />
+              </ProtectedRoute>
+            } />
+            <Route path="/contract-events-eda" element={
+              <ProtectedRoute>
+                <ContractEventsEDA />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={

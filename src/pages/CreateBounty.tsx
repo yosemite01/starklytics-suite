@@ -25,6 +25,7 @@ import {
   Target
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+// NOTE: All actual token deposit logic should be handled by a backend API for security.
 
 export default function CreateBounty() {
   const { user, profile } = useAuth();
@@ -73,23 +74,20 @@ export default function CreateBounty() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!user || !profile) {
       setError('You must be logged in to create a bounty.');
       return;
     }
-
     if (profile.role !== 'bounty_creator' && profile.role !== 'admin') {
       setError('Only bounty creators can create bounties. Please update your profile role.');
       return;
     }
-
     setLoading(true);
     setError('');
     setSuccess('');
-
     try {
-      const { error: bountyError } = await supabase
+      // 1. Create bounty in DB (status: pending_deposit)
+      const { data: bounty, error: bountyError } = await supabase
         .from('bounties')
         .insert([{
           creator_id: user.id,
@@ -104,14 +102,35 @@ export default function CreateBounty() {
           max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
           tags: formData.tags,
           platform_fee_percentage: platformFeePercentage,
-          status: 'draft'
-        }]);
-
+          status: 'pending_deposit'
+        }])
+        .select()
+        .single();
       if (bountyError) throw bountyError;
 
-      setSuccess('Bounty created successfully! You can now publish it to make it active.');
-      
-      // Reset form
+      // 2. Call backend API to perform deposit with AutoSwappr
+      // (This should be a secure endpoint, e.g. /api/deposit-bounty)
+      const depositRes = await fetch('/api/deposit-bounty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bountyId: bounty.id,
+          amount: parseFloat(formData.reward_amount),
+          token: formData.reward_token,
+          creatorWallet: profile.wallet_address,
+        })
+      });
+      if (!depositRes.ok) {
+        throw new Error('Failed to deposit bounty funds. Please try again or contact support.');
+      }
+
+      // 3. Update bounty status to 'active' after successful deposit
+      await supabase
+        .from('bounties')
+        .update({ status: 'active' })
+        .eq('id', bounty.id);
+
+      setSuccess('Bounty created and deposit successful! Your bounty is now active.');
       setFormData({
         title: '',
         description: '',
@@ -124,7 +143,6 @@ export default function CreateBounty() {
         max_participants: '',
         tags: [],
       });
-      
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -179,14 +197,12 @@ export default function CreateBounty() {
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      <Sidebar />
-      
+      <AuthenticatedSidebar />
       <div className="flex-1 flex flex-col">
         <Header 
           title="Create Bounty" 
           subtitle="Post analytics challenges for the community"
         />
-        
         <main className="flex-1 p-6">
           <div className="max-w-4xl mx-auto">
             {error && (

@@ -49,6 +49,7 @@ export default function Profile() {
     username: profile?.username || '',
     bio: profile?.bio || '',
     wallet_address: profile?.wallet_address || '',
+    role: profile?.role || 'analyst',
   });
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function Profile() {
         username: profile.username || '',
         bio: profile.bio || '',
         wallet_address: profile.wallet_address || '',
+        role: profile.role || 'analyst',
       });
     }
   }, [profile]);
@@ -112,6 +114,7 @@ export default function Profile() {
         username: profile.username || '',
         bio: profile.bio || '',
         wallet_address: profile.wallet_address || '',
+        role: profile.role || 'analyst',
       });
     }
     setEditing(false);
@@ -260,6 +263,33 @@ export default function Profile() {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    {editing ? (
+                      <div className="flex space-x-2">
+                        <Button
+                          type="button"
+                          variant={formData.role === 'analyst' ? 'default' : 'outline'}
+                          onClick={() => setFormData({ ...formData, role: 'analyst' })}
+                          className={formData.role === 'analyst' ? 'glow-primary' : ''}
+                        >
+                          Analyst
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={formData.role === 'bounty_creator' ? 'default' : 'outline'}
+                          onClick={() => setFormData({ ...formData, role: 'bounty_creator' })}
+                          className={formData.role === 'bounty_creator' ? 'glow-primary' : ''}
+                        >
+                          Bounty Creator
+                        </Button>
+                      </div>
+                    ) : (
+                      <Badge className={`${getRoleColor(formData.role)} text-white border-0`}>
+                        {formData.role.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                    )}
+                  </div>
                   <div className="pt-4">
                     <Label>Email</Label>
                     <p className="text-sm text-muted-foreground mt-1">{user.email}</p>

@@ -1,73 +1,124 @@
-# Welcome to your Lovable project
 
-## Project info
+# 🚀 Starklytics Suite MVP
 
-**URL**: https://lovable.dev/projects/6bdb15f6-ff1e-4786-97d1-5d200f134246
+## 🏗️ Project Overview
 
-## How can I edit this code?
+Starklytics Suite is a next-gen analytics and bounty platform for Starknet. It enables:
+- 📊 Viewing analytics dashboards
+- 🏆 Creating and joining bounties
+- 👛 Managing your Starknet wallet (Ready, Argent)
+- 🪙 Receiving tokens as rewards
+- 👤 Editing your profile and switching roles
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 👥 Roles
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6bdb15f6-ff1e-4786-97d1-5d200f134246) and start prompting.
+- **Analyst**: Can join bounties, submit solutions, and earn rewards.
+- **Bounty Creator**: Can create bounties, fund them, and select winners.
+- **Admin**: Full access, can manage users and bounties.
 
-Changes made via Lovable will be committed automatically to this repo.
+Switch your role in your profile to unlock creator features!
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🏆 Bounty Creation Workflow (with AutoSwappr)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Role Check**: Only users with the "Bounty Creator" or "Admin" role can create bounties.
+2. **Form Fill**: Enter bounty details (title, description, requirements, reward, deadline, etc).
+3. **DB Insert**: Bounty is created in the database with status `pending_deposit`.
+4. **Deposit Funds**: The backend calls AutoSwappr to deposit/stake the reward tokens securely.
+5. **Activation**: On successful deposit, the bounty status is set to `active` and is visible to all.
+6. **Payout**: When a winner is selected, AutoSwappr is used to swap and payout tokens to the winner.
 
-Follow these steps:
+**Security**: 🔒 All token operations are handled by a backend API. Never expose private keys in frontend code!
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🏛️ Architecture
 
-# Step 3: Install the necessary dependencies.
-npm i
+- **Frontend**: React + Vite + shadcn-ui + Tailwind CSS
+- **Backend**: Supabase (Postgres, Auth, API), custom API endpoints for AutoSwappr
+- **Smart Contracts**: Cairo contracts for bounties (see below)
+- **Analytics**: Dune Analytics integration for contract event data
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+## 🔄 Work Flow
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. **Sign Up / Login**
+2. **Set Role**: Go to Profile, switch to "Bounty Creator" if you want to create bounties
+3. **Create Bounty**: Fill out the form, submit, and deposit funds (handled by backend)
+4. **Join Bounty**: Analysts can join and submit solutions
+5. **Select Winner**: Creator/admin selects winner, payout is handled automatically
+6. **View Analytics**: Use the Contract Events EDA page for on-chain event analysis
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## ✅ Work Done
 
-## What technologies are used for this project?
+- [x] Remove Stripe and simplify wallet logic
+- [x] Add role switching and profile editing
+- [x] Create/Join Bounty flows
+- [x] Integrate AutoSwappr for deposits/payouts (backend API)
+- [x] Contract Events EDA (Dune + RPC)
+- [x] Mobile responsive UI
+- [x] Full documentation
 
-This project is built with:
+## 🛠️ Work Left
+
+- [ ] Backend API for AutoSwappr (see `/api/deposit-bounty`)
+- [ ] Cairo contract deployment and frontend integration
+- [ ] Advanced analytics and dashboards
+- [ ] Email notifications
+- [ ] Production security review
+
+---
+
+## 📦 Tech Stack
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase
+- AutoSwappr SDK
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/6bdb15f6-ff1e-4786-97d1-5d200f134246) and click on Share -> Publish.
+## 🧑‍💻 Cairo Smart Contract Integration (MVP)
 
-## Can I connect a custom domain to my Lovable project?
+The following functions should be implemented in the Cairo smart contract and callable from the frontend:
 
-Yes, you can!
+- `create_bounty(title: felt, description: felt, reward_amount: felt, deadline: felt)`
+- `join_bounty(bounty_id: felt, participant: felt)`
+- `submit_solution(bounty_id: felt, participant: felt, solution_hash: felt)`
+- `distribute_reward(bounty_id: felt, winner: felt)`
+- `get_bounty_details(bounty_id: felt) -> (details: BountyStruct)`
+- `get_participant_status(bounty_id: felt, participant: felt) -> (status: felt)`
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 📈 Contract Events EDA Feature
+
+Analyze any Starknet mainnet contract by entering its address on the `/contract-events-eda` page. The app fetches and displays the latest 100 events from the last two weeks for that contract, using a public Starknet RPC endpoint or Dune Analytics.
+
+---
+
+## 🛠️ Local Development
+
+Clone, install, and run:
+
+```sh
+git clone <YOUR_GIT_URL>
+cd <YOUR_PROJECT_NAME>
+pnpm i
+pnpm run dev
+```
+
+---
+
+## 🌐 Deployment & Domains
+
+Deploy via [Lovable](https://lovable.dev/projects/6bdb15f6-ff1e-4786-97d1-5d200f134246) or your preferred platform. Custom domains supported!
