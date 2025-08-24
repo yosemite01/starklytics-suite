@@ -11,7 +11,8 @@ import {
   Settings, 
   ChevronLeft,
   Search,
-  Home
+  Home,
+  Book
 } from "lucide-react";
 
 const navigation = [
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Data Visualization", href: "/charts", icon: BarChart3 },
   { name: "Bounties", href: "/bounties", icon: Trophy },
   { name: "Wallet", href: "/wallet", icon: Wallet },
+  { name: "Docs", href: "/docs", icon: Book },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

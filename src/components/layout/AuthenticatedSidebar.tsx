@@ -26,6 +26,7 @@ const navigation = [
   { name: "Data Visualization", href: "/charts", icon: BarChart3 },
   { name: "Bounties", href: "/bounties", icon: Trophy },
   { name: "Wallet", href: "/wallet", icon: Wallet },
+  { name: "Documentation", href: "/docs", icon: FileBarChart },
   { name: "Contract Events EDA", href: "/contract-events-eda", icon: FileBarChart },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
