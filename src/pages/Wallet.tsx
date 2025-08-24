@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { AuthenticatedSidebar } from "@/components/layout/AuthenticatedSidebar";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,27 +24,34 @@ import {
 
 
 
-interface Transaction {
-  hash: string;
-  type: "sent" | "received";
-  amount: string;
-  token: string;
-  timestamp: string;
-  status: "confirmed" | "pending" | "failed";
-}
-
-interface TokenBalance {
-  symbol: string;
-  balance: string;
-  usdValue: string;
-  change24h: number;
-}
-
 export default function Wallet() {
+  interface Transaction {
+    hash: string;
+    type: "sent" | "received";
+    amount: string;
+    token: string;
+    timestamp: string;
+    status: "confirmed" | "pending" | "failed";
+  }
+  interface TokenBalance {
+    symbol: string;
+    balance: string;
+    usdValue: string;
+    change24h: number;
+  }
+
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
   const [selectedWallet, setSelectedWallet] = useState<"argent" | "ready" | null>(null);
-  
+  const [detectedWallets, setDetectedWallets] = useState<{ argent: boolean; ready: boolean }>({ argent: false, ready: false });
+
+  // Auto-detect installed wallets on mount
+  useState(() => {
+    const argentDetected = typeof window !== 'undefined' && !!(window as any).starknet_argentX;
+    const readyDetected = typeof window !== 'undefined' && !!(window as any).starknet_ready;
+    setDetectedWallets({ argent: argentDetected, ready: readyDetected });
+  });
+
   const [tokenBalances] = useState<TokenBalance[]>([
     { symbol: "ETH", balance: "2.45", usdValue: "4,890.50", change24h: 2.34 },
     { symbol: "STRK", balance: "1,250.00", usdValue: "2,500.00", change24h: -1.23 },
@@ -107,7 +114,7 @@ export default function Wallet() {
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      <Sidebar />
+      <AuthenticatedSidebar />
       
       <div className="flex-1 flex flex-col">
         <Header 
@@ -126,56 +133,58 @@ export default function Wallet() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button
-                  onClick={() => connectWallet("argent")}
-                  variant="outline"
-                  className="w-full h-16 flex items-center justify-between p-4 hover:bg-primary/10 hover:border-primary"
-                  disabled={selectedWallet === "argent"}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">A</span>
+                {detectedWallets.argent && (
+                  <Button
+                    onClick={() => connectWallet("argent")}
+                    variant="outline"
+                    className="w-full h-16 flex items-center justify-between p-4 hover:bg-primary/10 hover:border-primary"
+                    disabled={selectedWallet === "argent"}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">A</span>
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">Argent X</p>
+                        <p className="text-xs text-muted-foreground">Most popular Starknet wallet</p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="font-medium">Argent X</p>
-                      <p className="text-xs text-muted-foreground">Most popular Starknet wallet</p>
+                    {selectedWallet === "argent" && (
+                      <div className="animate-spin">
+                        <Zap className="w-4 h-4" />
+                      </div>
+                    )}
+                  </Button>
+                )}
+                {detectedWallets.ready && (
+                  <Button
+                    onClick={() => connectWallet("ready")}
+                    variant="outline"
+                    className="w-full h-16 flex items-center justify-between p-4 hover:bg-primary/10 hover:border-primary"
+                    disabled={selectedWallet === "ready"}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">R</span>
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">Ready</p>
+                        <p className="text-xs text-muted-foreground">Connect to Ready wallet</p>
+                      </div>
                     </div>
+                    {selectedWallet === "ready" && (
+                      <div className="animate-spin">
+                        <Zap className="w-4 h-4" />
+                      </div>
+                    )}
+                  </Button>
+                )}
+                {!detectedWallets.argent && !detectedWallets.ready && (
+                  <div className="text-center text-muted-foreground py-4">
+                    <AlertCircle className="w-6 h-6 mx-auto mb-2" />
+                    <p>No supported Starknet wallets detected in your browser.<br/>Please install <a href="https://www.argent.xyz/argent-x/" target="_blank" rel="noopener noreferrer" className="underline">Argent X</a> or <a href="https://ready.gg/" target="_blank" rel="noopener noreferrer" className="underline">Ready</a>.</p>
                   </div>
-                  {selectedWallet === "argent" && (
-                    <div className="animate-spin">
-                      <Zap className="w-4 h-4" />
-                    </div>
-                  )}
-                </Button>
-                
-                <Button
-                  onClick={() => connectWallet("ready")}
-                  variant="outline"
-                  className="w-full h-16 flex items-center justify-between p-4 hover:bg-primary/10 hover:border-primary"
-                  disabled={selectedWallet === "ready"}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">R</span>
-                    </div>
-                    <div className="text-left">
-                      <p className="font-medium">Ready</p>
-                      <p className="text-xs text-muted-foreground">Connect to Ready wallet</p>
-                    </div>
-                  </div>
-                  {selectedWallet === "ready" && (
-                    <div className="animate-spin">
-                      <Zap className="w-4 h-4" />
-                    </div>
-                  )}
-                </Button>
-
-                <div className="pt-4 border-t border-border">
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Shield className="w-4 h-4" />
-                    <span>Ready wallet connected</span>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           ) : (

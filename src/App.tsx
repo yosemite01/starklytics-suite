@@ -1,3 +1,4 @@
+import ContractEventsEDA from "./pages/ContractEventsEDA";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -86,6 +87,11 @@ const App = () => (
             <Route path="/wallet" element={
               <ProtectedRoute>
                 <Wallet />
+              </ProtectedRoute>
+            } />
+            <Route path="/contract-events-eda" element={
+              <ProtectedRoute>
+                <ContractEventsEDA />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={

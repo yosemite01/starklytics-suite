@@ -1,98 +1,124 @@
 
-# Starklytics Suite MVP
+# 🚀 Starklytics Suite MVP
 
+## 🏗️ Project Overview
 
-## Project Overview
+Starklytics Suite is a next-gen analytics and bounty platform for Starknet. It enables:
+- 📊 Viewing analytics dashboards
+- 🏆 Creating and joining bounties
+- 👛 Managing your Starknet wallet (Ready, Argent)
+- 🪙 Receiving tokens as rewards
+- 👤 Editing your profile and switching roles
 
-Starklytics Suite is an MVP analytics and bounty platform for Starknet. It allows users to:
-- View analytics dashboards
-- Create and join bounties
-- Manage their Starknet wallet (Ready, Argent)
-- Receive tokens as rewards
-- View and edit their profile
+---
 
-## How can I edit this code?
+## 👥 Roles
 
-There are several ways of editing your application.
+- **Analyst**: Can join bounties, submit solutions, and earn rewards.
+- **Bounty Creator**: Can create bounties, fund them, and select winners.
+- **Admin**: Full access, can manage users and bounties.
 
-**Use Lovable**
+Switch your role in your profile to unlock creator features!
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6bdb15f6-ff1e-4786-97d1-5d200f134246) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🏆 Bounty Creation Workflow (with AutoSwappr)
 
-**Use your preferred IDE**
+1. **Role Check**: Only users with the "Bounty Creator" or "Admin" role can create bounties.
+2. **Form Fill**: Enter bounty details (title, description, requirements, reward, deadline, etc).
+3. **DB Insert**: Bounty is created in the database with status `pending_deposit`.
+4. **Deposit Funds**: The backend calls AutoSwappr to deposit/stake the reward tokens securely.
+5. **Activation**: On successful deposit, the bounty status is set to `active` and is visible to all.
+6. **Payout**: When a winner is selected, AutoSwappr is used to swap and payout tokens to the winner.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+**Security**: 🔒 All token operations are handled by a backend API. Never expose private keys in frontend code!
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## 🏛️ Architecture
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- **Frontend**: React + Vite + shadcn-ui + Tailwind CSS
+- **Backend**: Supabase (Postgres, Auth, API), custom API endpoints for AutoSwappr
+- **Smart Contracts**: Cairo contracts for bounties (see below)
+- **Analytics**: Dune Analytics integration for contract event data
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 🔄 Work Flow
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+1. **Sign Up / Login**
+2. **Set Role**: Go to Profile, switch to "Bounty Creator" if you want to create bounties
+3. **Create Bounty**: Fill out the form, submit, and deposit funds (handled by backend)
+4. **Join Bounty**: Analysts can join and submit solutions
+5. **Select Winner**: Creator/admin selects winner, payout is handled automatically
+6. **View Analytics**: Use the Contract Events EDA page for on-chain event analysis
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## ✅ Work Done
 
-**Use GitHub Codespaces**
+- [x] Remove Stripe and simplify wallet logic
+- [x] Add role switching and profile editing
+- [x] Create/Join Bounty flows
+- [x] Integrate AutoSwappr for deposits/payouts (backend API)
+- [x] Contract Events EDA (Dune + RPC)
+- [x] Mobile responsive UI
+- [x] Full documentation
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🛠️ Work Left
 
+- [ ] Backend API for AutoSwappr (see `/api/deposit-bounty`)
+- [ ] Cairo contract deployment and frontend integration
+- [ ] Advanced analytics and dashboards
+- [ ] Email notifications
+- [ ] Production security review
 
-## Tech Stack
+---
+
+## 📦 Tech Stack
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
-## Cairo Smart Contract Integration (MVP)
+- Supabase
+- AutoSwappr SDK
+
+---
+
+## 🧑‍💻 Cairo Smart Contract Integration (MVP)
 
 The following functions should be implemented in the Cairo smart contract and callable from the frontend:
 
 - `create_bounty(title: felt, description: felt, reward_amount: felt, deadline: felt)`
-	- Called when a user creates a new bounty.
 - `join_bounty(bounty_id: felt, participant: felt)`
-	- Called when a user joins a bounty.
 - `submit_solution(bounty_id: felt, participant: felt, solution_hash: felt)`
-	- Called when a participant submits a solution.
 - `distribute_reward(bounty_id: felt, winner: felt)`
-	- Called by the contract owner/admin to distribute tokens to the winner.
 - `get_bounty_details(bounty_id: felt) -> (details: BountyStruct)`
-	- Called to fetch bounty details for display.
 - `get_participant_status(bounty_id: felt, participant: felt) -> (status: felt)`
-	- Called to check if a user has joined or submitted.
 
-These are the minimum required for the MVP. Extend as needed for production.
+---
 
+## 📈 Contract Events EDA Feature
 
-## How can I deploy this project?
+Analyze any Starknet mainnet contract by entering its address on the `/contract-events-eda` page. The app fetches and displays the latest 100 events from the last two weeks for that contract, using a public Starknet RPC endpoint or Dune Analytics.
 
-Simply open [Lovable](https://lovable.dev/projects/6bdb15f6-ff1e-4786-97d1-5d200f134246) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 🛠️ Local Development
 
-Yes, you can!
+Clone, install, and run:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```sh
+git clone <YOUR_GIT_URL>
+cd <YOUR_PROJECT_NAME>
+pnpm i
+pnpm run dev
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+---
+
+## 🌐 Deployment & Domains
+
+Deploy via [Lovable](https://lovable.dev/projects/6bdb15f6-ff1e-4786-97d1-5d200f134246) or your preferred platform. Custom domains supported!
