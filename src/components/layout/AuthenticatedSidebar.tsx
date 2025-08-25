@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWallet } from "@/hooks/use-wallet";
 import { 
   BarChart3, 
   Database, 
@@ -25,9 +26,6 @@ const navigation = [
   { name: "Dashboard Builder", href: "/builder", icon: Layout },
   { name: "Data Visualization", href: "/charts", icon: BarChart3 },
   { name: "Bounties", href: "/bounties", icon: Trophy },
-  { name: "Wallet", href: "/wallet", icon: Wallet },
-  { name: "Documentation", href: "/docs", icon: FileBarChart },
-  { name: "Contract Events EDA", href: "/contract-events-eda", icon: FileBarChart },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -38,7 +36,30 @@ interface AuthenticatedSidebarProps {
 export function AuthenticatedSidebar({ className }: AuthenticatedSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { connectWallet, isConnected, walletAddress, detectWallets } = useWallet();
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+  };
+
+  const handleWalletClick = async () => {
+    if (isConnected) {
+      navigate('/wallet');
+      return;
+    }
+
+    const detectedWallets = detectWallets();
+    if (detectedWallets.argent) {
+      await connectWallet('argent');
+    } else if (detectedWallets.ready) {
+      await connectWallet('ready');
+    } else {
+      // If no wallet is detected, still navigate to wallet page where they can see installation options
+      navigate('/wallet');
+    }
+  };
 
   return (
     <div
@@ -115,6 +136,29 @@ export function AuthenticatedSidebar({ className }: AuthenticatedSidebarProps) {
               </Link>
             );
           })}
+
+          {/* Wallet and Profile Actions */}
+          <div className="pt-4">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={handleWalletClick}
+            >
+              <Wallet className="w-5 h-5 mr-3" />
+              {!collapsed && (
+                <span>{isConnected ? 'Connected Wallet' : 'Connect Wallet'}</span>
+              )}
+            </Button>
+
+            <Button
+              variant="ghost"
+              className="w-full justify-start mt-2"
+              onClick={handleProfileClick}
+            >
+              <User className="w-5 h-5 mr-3" />
+              {!collapsed && <span>Profile</span>}
+            </Button>
+          </div>
 
           {/* Quick Actions */}
           {!collapsed && (
