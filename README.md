@@ -1,179 +1,155 @@
+
 # 🚀 Starklytics Suite MVP
+
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+![Status](https://img.shields.io/badge/status-MVP-blue)
+![Tech Stack](https://img.shields.io/badge/stack-React%20%7C%20Vite%20%7C%20Supabase%20%7C%20Cairo-purple)
+![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)
+![Starknet](https://img.shields.io/badge/built%20for-Starknet-black?logo=starknet)
+
+Next-gen **analytics & bounty platform** built for **Starknet** ⚡  
+
+---
 
 ## 🏗️ Project Overview
 
-**Starklytics Suite** is a next-generation analytics and bounty platform built for the **Starknet ecosystem**.  
-It provides a unified space for analysts, builders, and creators to collaborate through **on-chain bounties** while offering **analytics dashboards** to track performance and activity.  
+Starklytics Suite empowers the Starknet ecosystem with analytics dashboards and a seamless bounty system. Core features include:
 
-Key Features:
-- 📊 **Analytics Dashboards**: Visualize Starknet contract events and activity.
-- 🏆 **Bounty System**: Create, join, and participate in bounties with tokenized rewards.
-- 👛 **Wallet Management**: Connect and use Starknet wallets (Argent, Braavos, Ready).
-- 🪙 **Token Rewards**: Secure deposits and payouts via **AutoSwappr backend integration**.
-- 👤 **User Roles & Profiles**: Switch between Analyst, Bounty Creator, and Admin.
+- 📊 Viewing rich **analytics dashboards**
+- 🏆 **Creating and joining bounties**
+- 👛 Managing your Starknet wallet (Ready, Argent)
+- 🪙 **Receiving token rewards**
+- 👤 Profile management & **role switching**
 
 ---
 
 ## 👥 Roles
 
-- **Analyst** → Join bounties, submit solutions, and earn rewards.  
-- **Bounty Creator** → Launch bounties, fund them, and select winners.  
-- **Admin** → Manage users, oversee bounties, and ensure smooth operations.  
+- **Analyst**: Join bounties, submit solutions, and earn rewards  
+- **Bounty Creator**: Create and fund bounties, select winners  
+- **Admin**: Manage everything (users + bounties)  
 
-Role switching is handled in the **Profile** page, unlocking creator/admin features.  
-
----
-
-## 🏆 Bounty Lifecycle (MVP Flow)
-
-1. **Role Validation** → Only Creators/Admins can start bounties.  
-2. **Bounty Form** → Provide title, description, requirements, reward, and deadline.  
-3. **Database Insert** → Bounty saved with status `pending_deposit`.  
-4. **Deposit Funds** → Backend calls **AutoSwappr** to deposit/stake tokens securely.  
-5. **Activation** → On successful deposit, bounty becomes `active` and visible.  
-6. **Submissions** → Analysts join and submit solutions.  
-7. **Winner Selection** → Creator/Admin selects a winner.  
-8. **Payout** → Backend triggers AutoSwappr to swap and transfer tokens.  
-
-🔒 **Security Note**: All token operations are strictly backend-handled.  
-Frontend **never** touches private keys.  
+👉 Switch your role in your **Profile** to unlock **Creator** features!
 
 ---
 
-## 🏛️ System Architecture
+## 🏆 Bounty Creation Workflow (with AutoSwappr)
 
-The architecture is modular, ensuring clear separation of concerns:  
+1. **Role Check** → Only *Bounty Creators* or *Admins* can create bounties  
+2. **Form Fill** → Enter details: title, description, requirements, reward, deadline, etc.  
+3. **DB Insert** → Bounty stored with status `pending_deposit`  
+4. **Deposit Funds** → Backend calls **AutoSwappr** to securely deposit/stake tokens  
+5. **Activation** → On success, bounty status = `active` (visible to all)  
+6. **Payout** → Winners get paid via AutoSwappr swap + payout flow  
 
-### 1. **Frontend (User Interaction Layer)**
-- Built with **React + Vite + TypeScript**  
-- Styled using **Tailwind CSS + shadcn/ui**  
-- Features:
-  - Wallet connection (ArgentX, Braavos, Ready)  
-  - Bounty dashboard (create/join/manage)  
-  - Analytics dashboard (contract events + charts)  
-  - Profile & role management  
-
-### 2. **Backend (Application & Business Logic Layer)**
-- Powered by **Supabase**:
-  - Postgres (DB layer for users, bounties, submissions)  
-  - Auth (role-based access control)  
-  - API (edge functions for interaction)  
-- **Custom API Endpoints**:
-  - `/api/deposit-bounty` → Handles token deposits via AutoSwappr  
-  - `/api/payout` → Automates reward distribution  
-
-### 3. **Smart Contracts (On-Chain State Layer)**
-- Written in **Cairo (Starknet 2.x)**  
-- Emits events for:
-  - Bounty creation  
-  - Participant join  
-  - Solution submission  
-  - Reward distribution  
-- Core functions (see below).  
-
-### 4. **Analytics Layer**
-- **Dune Analytics** integration for Starknet event tracking.  
-- **Custom RPC** endpoint support for fetching recent contract events.  
+🔒 **Security Note**: All token ops run server-side. No private keys in frontend!
 
 ---
 
-## 🔄 Platform Workflow
+## 🏛️ Architecture
 
-1. **Sign Up / Login** via Supabase.  
-2. **Set Role** → Profile page (Analyst / Creator / Admin).  
-3. **Create Bounty** → Form submission triggers DB insert + AutoSwappr deposit.  
-4. **Join Bounty** → Analysts can submit solutions.  
-5. **Winner Selection** → Trigger payout workflow.  
-6. **Analyze Events** → Use `/contract-events-eda` for contract-level analytics.  
+- **Frontend**: React + Vite + shadcn-ui + Tailwind CSS  
+- **Backend**: Supabase (Postgres, Auth, API) + custom AutoSwappr endpoints  
+- **Smart Contracts**: Cairo-based bounty logic  
+- **Analytics**: Dune Analytics + Starknet RPC  
 
 ---
 
-## 🧑‍💻 Cairo Smart Contract Functions
+## 🔄 Typical Workflow
 
-MVP contracts should expose:
-
-```cairo
-create_bounty(title: felt, description: felt, reward_amount: felt, deadline: felt)
-join_bounty(bounty_id: felt, participant: felt)
-submit_solution(bounty_id: felt, participant: felt, solution_hash: felt)
-distribute_reward(bounty_id: felt, winner: felt)
-get_bounty_details(bounty_id: felt) -> (details: BountyStruct)
-get_participant_status(bounty_id: felt, participant: felt) -> (status: felt)
-
+1. **Sign Up / Login**  
+2. **Set Role** → Switch to "Bounty Creator" if needed  
+3. **Create Bounty** → Fill form, deposit handled by backend  
+4. **Join Bounty** → Analysts submit solutions  
+5. **Select Winner** → Creator/Admin finalizes + payout auto-handled  
+6. **View Analytics** → Check the Contract Events EDA page  
 
 ---
 
-## 📈 Analytics (Contract Events EDA)
+## ✅ Work Done
 
-* Accessible via `/contract-events-eda`.
-* Enter any **Starknet contract address** to fetch and explore the **latest 100 events** from the past 14 days.
-* Data sources:
-
-  * Public Starknet RPC
-  * Dune Analytics (query + visualization)
+- [x] Removed Stripe, simplified wallet logic  
+- [x] Role switching + profile editing  
+- [x] Full create/join bounty flows  
+- [x] AutoSwappr integration for deposits & payouts (backend API)  
+- [x] Contract Events EDA (Dune + RPC)  
+- [x] Responsive mobile UI  
+- [x] Full documentation  
 
 ---
 
-## ✅ Progress Status
+## 🛠️ Work Left
 
-### ✔️ Completed
-
-* Role-based profiles + switching
-* Bounty create/join flows
-* AutoSwappr integration (backend-managed)
-* Contract Events Explorer (EDA)
-* Mobile-friendly UI
-* Initial Cairo contract scaffolding
-
-### 🔧 To-Do
-
-* API for AutoSwappr deposit/payout (production-ready)
-* Full Cairo contract deployment & frontend integration
-* Advanced analytics dashboards (multi-contract, filterable)
-* Email/notification system
-* Security audit & production hardening
+- [ ] Backend API completion for AutoSwappr (`/api/deposit-bounty`)  
+- [ ] Cairo contract deployment + frontend integration  
+- [ ] Advanced analytics dashboards  
+- [ ] Email notifications  
+- [ ] Production-grade security review  
 
 ---
 
 ## 📦 Tech Stack
 
-* **Frontend**: React, Vite, TypeScript, Tailwind CSS, shadcn-ui
-* **Backend**: Supabase (Postgres, Auth, API) + Custom APIs
-* **Smart Contracts**: Cairo (Starknet)
-* **Integrations**: AutoSwappr SDK, Dune Analytics
+- ⚡ Vite  
+- 🟦 TypeScript  
+- ⚛️ React  
+- 🎨 shadcn-ui + Tailwind CSS  
+- 🛠️ Supabase  
+- 🔄 AutoSwappr SDK  
+
+---
+
+## 🧑‍💻 Cairo Smart Contract Integration (MVP)
+
+Functions to be exposed:
+
+- `create_bounty(title: felt, description: felt, reward_amount: felt, deadline: felt)`  
+- `join_bounty(bounty_id: felt, participant: felt)`  
+- `submit_solution(bounty_id: felt, participant: felt, solution_hash: felt)`  
+- `distribute_reward(bounty_id: felt, winner: felt)`  
+- `get_bounty_details(bounty_id: felt) -> (details: BountyStruct)`  
+- `get_participant_status(bounty_id: felt, participant: felt) -> (status: felt)`  
+
+---
+
+## 📈 Contract Events EDA
+
+Analyze any **Starknet mainnet contract** on the `/contract-events-eda` page.  
+
+- Fetches last **100 events** from past **2 weeks**  
+- Uses **public Starknet RPC** or **Dune Analytics**  
 
 ---
 
 ## 🛠️ Local Development
 
+Clone, install, and run locally:
+
 ```sh
-# Clone repo
 git clone <YOUR_GIT_URL>
 cd <YOUR_PROJECT_NAME>
-
-# Install dependencies
 pnpm i
-
-# Run dev server
 pnpm run dev
 ```
 
+---
 
-## 🌐 Deployment
+## 🌐 Deployment & Domains
 
-* Deployable via **Lovable**, Vercel, or Netlify.
-* Supabase project required for backend services.
-* Custom domain supported.
+Deploy via [Vercel]([https://lovable.dev/projects/6bdb15f6-ff1e-4786-97d1-5d200f134246](https://starklytics-suite.vercel.app/)) or any preferred platform.  
+✅ Supports **custom domains** out-of-the-box.  
 
 ---
 
-## 📚 Documentation Roadmap
+## 🤝 Contributing
 
-Planned additions:
+We welcome contributions! 🚀  
+- Fork & clone  
+- Create a feature branch  
+- Submit a PR  
 
-* **User Onboarding Guide** → Step-by-step role switching & bounty creation.
-* **Data Flow Documentation** → How Supabase + AutoSwappr interact with Starknet.
-* **Query Examples** → Ready-to-run Dune SQL templates for analysts.
-* **Architecture Diagram** → Visual system overview (frontend ↔ backend ↔ contracts).
+---
 
-```
+## 📜 License
+
+MIT License © 2025 — Built with ❤️ for the Starknet community.
